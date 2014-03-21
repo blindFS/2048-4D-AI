@@ -112,11 +112,11 @@ Grid.prototype.build = function () {
       var col = [];
       row.push(col);
       for (var z = 0; z < this.size; z++) {
-          var beam = [];
-          col.push(beam);
-          for (var w = 0; w < this.size; w++) {
-              beam.push(null);
-          }
+        var beam = [];
+        col.push(beam);
+        for (var w = 0; w < this.size; w++) {
+          beam.push(null);
+        }
       }
     }
   }
@@ -241,9 +241,9 @@ Grid.prototype.isWin = function () {
 
 Grid.prototype.withinBounds = function (position) {
   return position.x >= 0 && position.x < this.size &&
-         position.y >= 0 && position.y < this.size &&
-         position.z >= 0 && position.z < this.size &&
-         position.w >= 0 && position.w < this.size;
+    position.y >= 0 && position.y < this.size &&
+    position.z >= 0 && position.z < this.size &&
+    position.w >= 0 && position.w < this.size;
 };
 
 Grid.prototype.clone = function() {
@@ -366,6 +366,149 @@ Grid.prototype.smoothness = function () {
   }
   return smoothness;
 };
+
+Grid.prototype.maxValue = function() {
+  var max = 0;
+  for (var x=0; x<this.size; x++) {
+    for (var y=0; y<this.size; y++) {
+      for (var z=0; z<this.size; z++) {
+        for (var w=0; w<this.size; w++) {
+          cell = {x: x, y: y, z: z, w: w};
+          if (this.cellOccupied(cell)) {
+            var value = this.cellContent(cell).value;
+            if (value > max) {
+              max = value;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return Math.log(max) / Math.log(2);
+}
+
+Grid.prototype.monotonicity2 = function() {
+  // scores for all four directions
+  var totals = [0, 0, 0, 0, 0, 0, 0, 0];
+
+  // up/down direction
+  for (var x=0; x<this.size; x++) {
+    for (var z=0; z<this.size; z++) {
+      for (var w=0; w<this.size; w++) {
+        var current = 0;
+        var next = current+1;
+        while ( next<this.size ) {
+          while ( next<this.size && !this.cellOccupied( {x:x, y:next, z:z, w:w} )) {
+            next++;
+          }
+          if (next>=this.size) { next--; }
+          var currentValue = this.cellOccupied({x:x, y:current, z:z, w:w}) ?
+            Math.log(this.cellContent( {x:x, y:current, z:z, w:w} ).value) / Math.log(2) :
+              0;
+          var nextValue = this.cellOccupied({x:x, y:next, z:z, w:w}) ?
+            Math.log(this.cellContent( {x:x, y:next, z:z, w:w} ).value) / Math.log(2) :
+              0;
+          if (currentValue > nextValue) {
+            totals[0] += nextValue - currentValue;
+          } else if (nextValue > currentValue) {
+            totals[1] += currentValue - nextValue;
+          }
+          current = next;
+          next++;
+        }
+      }
+    }
+  }
+
+  // left/right direction
+  for (var y=0; y<this.size; y++) {
+    for (var z=0; z<this.size; z++) {
+      for (var w=0; w<this.size; w++) {
+        var current = 0;
+        var next = current+1;
+        while ( next<this.size ) {
+          while ( next<this.size && !this.cellOccupied({x:next, y:y, z:z, w:w})) {
+            next++;
+          }
+          if (next>=this.size) { next--; }
+          var currentValue = this.cellOccupied({x:current, y:y, z:z, w:w}) ?
+            Math.log(this.cellContent({x:current, y:y, z:z, w:w}).value) / Math.log(2) :
+              0;
+          var nextValue = this.cellOccupied({x:next, y:y, z:z, w:w}) ?
+            Math.log(this.cellContent({x:next, y:y, z:z, w:w}).value) / Math.log(2) :
+              0;
+          if (currentValue > nextValue) {
+            totals[2] += nextValue - currentValue;
+          } else if (nextValue > currentValue) {
+            totals[3] += currentValue - nextValue;
+          }
+          current = next;
+          next++;
+        }
+      }
+    }
+  }
+
+  // hyper left/right
+  for (var x=0; x<this.size; x++) {
+    for (var y=0; y<this.size; y++) {
+      for (var w=0; w<this.size; w++) {
+        var current = 0;
+        var next = current+1;
+        while ( next<this.size ) {
+          while ( next<this.size && !this.cellOccupied({x:x, y:y, z:next, w:w})) {
+            next++;
+          }
+          if (next>=this.size) { next--; }
+          var currentValue = this.cellOccupied({x:x, y:y, z:current, w:w}) ?
+            Math.log(this.cellContent({x:x, y:y, z:current, w:w}).value) / Math.log(2) :
+              0;
+          var nextValue = this.cellOccupied({x:x, y:y, z:next, w:w}) ?
+            Math.log(this.cellContent({x:x, y:y, z:next, w:w}).value) / Math.log(2) :
+              0;
+          if (currentValue > nextValue) {
+            totals[4] += nextValue - currentValue;
+          } else if (nextValue > currentValue) {
+            totals[5] += currentValue - nextValue;
+          }
+          current = next;
+          next++;
+        }
+      }
+    }
+  }
+
+  // hyper up/down
+  for (var x=0; x<this.size; x++) {
+    for (var y=0; y<this.size; y++) {
+      for (var z=0; z<this.size; z++) {
+        var current = 0;
+        var next = current+1;
+        while ( next<this.size ) {
+          while ( next<this.size && !this.cellOccupied({x:x, y:y, z:z, w:next})) {
+            next++;
+          }
+          if (next>=this.size) { next--; }
+          var currentValue = this.cellOccupied({x:x, y:y, z:z, w:current}) ?
+            Math.log(this.cellContent({x:x, y:y, z:z, w:current}).value) / Math.log(2) :
+              0;
+          var nextValue = this.cellOccupied({x:x, y:y, z:z, w:next}) ?
+            Math.log(this.cellContent({x:x, y:y, z:z, w:next}).value) / Math.log(2) :
+              0;
+          if (currentValue > nextValue) {
+            totals[4] += nextValue - currentValue;
+          } else if (nextValue > currentValue) {
+            totals[5] += currentValue - nextValue;
+          }
+          current = next;
+          next++;
+        }
+      }
+    }
+  }
+  return Math.max(totals[0], totals[1]) + Math.max(totals[2], totals[3]) + Math.max(totals[4], totals[5]) + Math.max(totals[6], totals[7]);
+}
 
 Grid.prototype.computerMove = function () {
   this.addRandomTile();
