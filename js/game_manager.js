@@ -42,6 +42,10 @@ GameManager.prototype.restart = function () {
 // Keep playing after winning
 GameManager.prototype.keepPlaying = function () {
   this.keepPlaying = true;
+  this.ai.keepPlaying = true;
+  if (this.running) {
+    this.run();
+  }
   this.actuator.continue();
 };
 
@@ -56,13 +60,13 @@ GameManager.prototype.isGameTerminated = function () {
 // Set up the game
 GameManager.prototype.setup = function () {
   this.grid        = new Grid(this.size);
-  this.ai          = new AI(this.grid);
 
   this.score       = 0;
   this.over        = false;
   this.won         = false;
   this.keepPlaying = false;
   this.grid.playerTurn  = true;
+  this.ai          = new AI(this.grid);
 
   // Add the initial tiles
   this.grid.addStartTiles();
@@ -92,7 +96,7 @@ GameManager.prototype.move = function (direction) {
   var result = this.grid.move(direction);
   this.score += result.score;
 
-  if (!result.won) {
+  if (!result.won || this.keepPlaying) {
     if (result.moved) {
       this.grid.computerMove();
     }
@@ -111,7 +115,7 @@ GameManager.prototype.run = function() {
   var best = this.ai.getBest();
   this.move(best.move);
   var timeout = animationDelay;
-  if (this.running && !this.over && !this.won) {
+  if (this.running && !this.over && (!this.won || this.keepPlaying)) {
     var self = this;
     setTimeout(function(){
       self.run();

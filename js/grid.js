@@ -19,6 +19,7 @@ Grid.prototype.addStartTiles = function () {
 Grid.prototype.addRandomTile = function () {
   if (this.cellsAvailable()) {
     var value = Math.random() < 0.9 ? 2 : 4;
+    // var value = 512;
     var tile = new Tile(this.randomAvailableCell(), value);
 
     this.insertTile(tile);
@@ -224,21 +225,6 @@ Grid.prototype.removeTile = function (tile) {
   this.cells[tile.x][tile.y][tile.z][tile.w] = null;
 };
 
-Grid.prototype.isWin = function () {
-  var self = this;
-  for (var x=0; x<this.size; x++) {
-    for (var y=0; y<this.size; y++) {
-      for (var z=0; z<this.size; z++) {
-        for (var w=0; w<this.size; w++) {
-          if (self.cellContent({x: x, y: y, z: z, w: w}).value == 2048) {
-            return true;
-          }
-        }
-      }
-    }
-  }
-};
-
 Grid.prototype.withinBounds = function (position) {
   return position.x >= 0 && position.x < this.size &&
     position.y >= 0 && position.y < this.size &&
@@ -356,7 +342,11 @@ Grid.prototype.smoothness = function () {
               if (this.cellOccupied(targetCell)) {
                 var target = this.cellContent(targetCell);
                 var targetValue = Math.log(target.value) / Math.log(2);
-                smoothness -= Math.abs(value - targetValue);
+                if (Math.abs(value - targetValue) == 1) {
+                  smoothness -= Math.abs(value - targetValue);
+                } else {
+                  smoothness -= 2;
+                }
               }
             }
           }
@@ -514,3 +504,20 @@ Grid.prototype.computerMove = function () {
   this.addRandomTile();
   this.playerTurn = true;
 };
+
+Grid.prototype.sum = function () {
+  var sum = 0;
+  for (var x=0; x < this.size.length; x++) {
+    for (var y=0; y < this.size.length; y++) {
+      for (var z=0; z < this.size.length; z++) {
+        for (var w=0; w < this.size.length; w++) {
+          cell = {x:x, y:y, z:z, w:w};
+          if (this.cellOccupied(cell)) {
+            sum += Math.log(this.cellContent(cell).value) / Math.log(2);
+          }
+        }
+      }
+    }
+  }
+  return sum;
+}

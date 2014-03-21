@@ -1,26 +1,29 @@
 function AI(grid) {
   this.grid = grid;
+  this.keepPlaying = false;
 }
 
 // static evaluation function
 AI.prototype.eval = function() {
   var emptyCells = this.grid.availableCells().length;
 
-  var smoothWeight = 0.3,
-      mono2Weight  = -0.02,
+  var smoothWeight = 2.0,
+      mono2Weight  = 0.7,
+      sumWeight    = -1.0,
       emptyWeight  = 3.0,
-      maxWeight    = 0.8;
+      maxWeight    = 1.5;
 
   return this.grid.smoothness() * smoothWeight
-       // + this.grid.monotonicity2() * mono2Weight
-       + Math.log(emptyCells) * emptyWeight
-       + this.grid.maxValue() * maxWeight;
+    // + this.grid.monotonicity2() * mono2Weight
+    // + this.grid.sum() * sumWeight
+    + Math.log(emptyCells) * emptyWeight
+    + this.grid.maxValue() * maxWeight;
 };
 
 //AI.prototype.cache = {}
 
 // alpha-beta depth first search
-AI.prototype.search = function(depth, alpha, beta, positions, cutoffs) {
+AI.prototype.search = function(depth, alpha, beta, positions, cutoffs, keepPlaying) {
   var bestScore;
   var bestMove = -1;
   var result;
@@ -32,7 +35,7 @@ AI.prototype.search = function(depth, alpha, beta, positions, cutoffs) {
       var newGrid = this.grid.clone();
       if (newGrid.move(direction).moved) {
         positions++;
-        if (newGrid.isWin()) {
+        if (!keepPlaying && newGrid.isWin()) {
           return { move: direction, score: 10000, positions: positions, cutoffs: cutoffs };
         }
         var newAI = new AI(newGrid);
@@ -40,7 +43,7 @@ AI.prototype.search = function(depth, alpha, beta, positions, cutoffs) {
         if (depth == 0) {
           result = { move: direction, score: newAI.eval() };
         } else {
-          result = newAI.search(depth-1, bestScore, beta, positions, cutoffs);
+          result = newAI.search(depth-1, bestScore, beta, positions, cutoffs, keepPlaying);
           if (result.score > 9900) { // win
             result.score--; // to slightly penalize higher depth from win
           }
@@ -54,7 +57,7 @@ AI.prototype.search = function(depth, alpha, beta, positions, cutoffs) {
         }
         if (bestScore > beta) {
           cutoffs++
-          return { move: bestMove, score: beta, positions: positions, cutoffs: cutoffs };
+            return { move: bestMove, score: beta, positions: positions, cutoffs: cutoffs };
         }
       }
     }
@@ -99,7 +102,7 @@ AI.prototype.search = function(depth, alpha, beta, positions, cutoffs) {
       newGrid.playerTurn = true;
       positions++;
       newAI = new AI(newGrid);
-      result = newAI.search(depth, alpha, bestScore, positions, cutoffs);
+      result = newAI.search(depth, alpha, bestScore, positions, cutoffs, keepPlaying);
       positions = result.positions;
       cutoffs = result.cutoffs;
 
@@ -124,10 +127,10 @@ AI.prototype.getBest = function() {
 // performs iterative deepening over the alpha-beta search
 AI.prototype.iterativeDeep = function() {
   var start = (new Date()).getTime();
-  var depth = 0;
+  var depth = 3;
   var best;
   do {
-    var newBest = this.search(depth, -10000, 10000, 0 ,0);
+    var newBest = this.search(depth, -10000, 10000, 0 , 0, this.keepPlaying);
     if (newBest.move == -1) {
       //console.log('BREAKING EARLY');
       break;
@@ -143,7 +146,7 @@ AI.prototype.iterativeDeep = function() {
 }
 
 AI.prototype.translate = function(move) {
- return {
+  return {
     0: 'up',
     1: 'right',
     2: 'down',
